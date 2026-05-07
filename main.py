@@ -53,6 +53,7 @@ def main():
                 row_ground = [
                     episode, time_delta,
                     noisy_ground_range,
+                    truth_gen.station_lat, truth_gen.station_lon, truth_gen.station_alt,
                     *r_deb, *v_deb # True states included to calculate RMSE later
                 ]
                 dataset_ground.append(row_ground)
@@ -95,6 +96,7 @@ def main():
         print("\nNo onboard radar visibility windows found in any episode. Adjust your encounter parameters.")
 
     ground_headers = ["episode_id", "time_elapsed_s", "noisy_ground_range_m", 
+                      "station_lat_deg", "station_lon_deg", "station_alt_m",
                       "true_deb_x", "true_deb_y", "true_deb_z", "true_deb_vx", "true_deb_vy", "true_deb_vz"]
     with open(Config.OUTPUT_FILE_GROUND, mode='w', newline='') as file:
         writer = csv.writer(file)

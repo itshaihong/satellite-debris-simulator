@@ -3,10 +3,10 @@ from astropy import units as u
 
 class Config:
     # Dataset Scaling
-    NUM_EPISODES = 100               # Generate 100 unique encounters for training
+    NUM_EPISODES = 10               # Generate 100 unique encounters for training
     
     # Time settings for each encounter
-    SIMULATION_DURATION = 120 * u.min # 100 minutes to ensure they pass each other
+    SIMULATION_DURATION = 120 * u.min # 120 minutes to ensure they pass each other
     TIME_STEP = 5 * u.s              # Radar ping frequency
     
     # Sensor Noise and Hardware Limits
@@ -16,5 +16,5 @@ class Config:
     MAX_RANGE_KM = 35.0
     
     # Output
-    OUTPUT_FILE = "ml_training_dataset_realistic.csv"
+    OUTPUT_FILE = "ml_training_dataset.csv"
     OUTPUT_FILE_GROUND = "ground_radar_dataset.csv"

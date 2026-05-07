@@ -4,6 +4,8 @@ import numpy as np
 import orekit
 from orekit.pyhelpers import download_orekit_data_curdir, setup_orekit_curdir
 
+from config import Config
+
 # Initialize Orekit
 vm = orekit.initVM()
 if not os.path.exists("orekit-data.zip"):
@@ -41,17 +43,10 @@ class TruthGenerator:
         self.earth_frame = FramesFactory.getITRF(IERSConventions.IERS_2010, True)
         self.earth = OneAxisEllipsoid(Constants.WGS84_EARTH_EQUATORIAL_RADIUS, 
                                       Constants.WGS84_EARTH_FLATTENING, self.earth_frame)
-        
-        # # Define a ground radar station (Latitude, Longitude, Altitude) [Abandoned]
-        # station_lat = float(np.radians(40.0))
-        # station_lon = float(np.radians(-100.0))
-        # station_alt = 0.0
-        
-        # station_point = GeodeticPoint(station_lat, station_lon, station_alt)
-        # self.ground_station = TopocentricFrame(self.earth, station_point, "SSN_Ground_Radar")
+    
         
         # Ground radar elevation mask (cannot track below 10 degrees due to horizon/clutter)
-        self.elevation_mask = float(np.radians(5.0))
+        self.elevation_mask = float(np.radians(10.0))
         # Ground radar max slant range (e.g., 3000 km)
         self.ground_max_range = 3000000.0
 
@@ -70,13 +65,20 @@ class TruthGenerator:
         self.deb_propagator = self._build_propagator(deb_start_orbit)
 
         # 1. Get the debris position at collision in inertial frame
-        mid_date = self.start_epoch.shiftedBy(2700.0)
+        mid_date = self.collision_epoch.shiftedBy(0.0)
         temp_state = self.deb_propagator.propagate(mid_date)
         true_mid_pos = temp_state.getPVCoordinates().getPosition()
-        geo_point = self.earth.transform(true_mid_pos, self.inertial_frame, mid_date)
+        debris_geo = self.earth.transform(true_mid_pos, self.inertial_frame, mid_date)
+        ground_geo_point = GeodeticPoint(debris_geo.getLatitude(), debris_geo.getLongitude(), 0.0)
         
-        # 3. Place the Ground Station exactly under the collision point
-        self.ground_station = TopocentricFrame(self.earth, geo_point, "Synchronized_Radar")
+        # 3. Place the Ground Station exactly under the debris
+        self.ground_station = TopocentricFrame(self.earth, ground_geo_point, "Synchronized_Radar")
+        self.elevation_mask = float(np.radians(5.0)) 
+        
+        # 4. Save station coordinates to expose them to the dataset
+        self.station_lat = float(np.degrees(ground_geo_point.getLatitude()))
+        self.station_lon = float(np.degrees(ground_geo_point.getLongitude()))
+        self.station_alt = 0.0 # Explicitly 0.0 meters!
 
     def _generate_encounter_orbits(self):
         """Generates Observer and Debris orbits that perfectly intersect at collision_epoch"""
@@ -188,6 +190,6 @@ class TruthGenerator:
         if elevation > self.elevation_mask and slant_range < self.ground_max_range:
             ground_visible = True
             # Traditional Ground Radar Noise (e.g., 15m standard deviation)
-            noisy_ground_range = slant_range + np.random.normal(0, 15.0)
+            noisy_ground_range = slant_range + np.random.normal(0, Config.SIGMA_RANGE * 1.5) # Slightly worse than space radar
         
         return r_obs, v_obs, r_deb, v_deb, ground_visible, noisy_ground_range

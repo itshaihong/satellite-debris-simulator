@@ -220,3 +220,5 @@ __marimo__/
 # data
 *.csv
 *.zip
+*.mp4
+*.gif
