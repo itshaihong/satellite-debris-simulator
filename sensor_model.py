@@ -106,6 +106,26 @@ class RadarSensor:
             eta_dot = (current_eta - self.prev_eta) / self.dt
             
         self.prev_eta = current_eta
+
+
+        # --- THE RTN TRANSFORMATION (REQUIRED FOR ML TARGETS) ---
+        # Define RTN Unit Vectors based on Observer's State
+        r_hat = r_obs / np.linalg.norm(r_obs)                    # Radial (Up from Earth)
+        h_vec = np.cross(r_obs, v_obs)                           # Angular Momentum Vector
+        n_hat = h_vec / np.linalg.norm(h_vec)                    # Normal (Cross-track / Perpendicular)
+        t_hat = np.cross(n_hat, r_hat)                           # Transverse (In-track / Velocity direction)
+        
+        # Rotation Matrix (ECI to RTN)
+        R_ECI_to_RTN = np.array([r_hat, t_hat, n_hat])
+        
+        # 1. Rotate Position
+        rel_pos_rtn = np.dot(R_ECI_to_RTN, rel_pos)
+        
+        # 2. Rotate Velocity (Requires Coriolis/Transport compensation)
+        # The RTN frame is rotating around the Earth, so we must subtract the frame's angular velocity
+        omega_vec = h_vec / (np.linalg.norm(r_obs)**2) 
+        v_transport = np.cross(omega_vec, rel_pos)
+        rel_vel_rtn = np.dot(R_ECI_to_RTN, rel_vel - v_transport)
         
         return {
             "true_range": true_range,
@@ -113,5 +133,6 @@ class RadarSensor:
             "noisy_range": noisy_range,
             "noisy_doppler": noisy_doppler,
             "eta_dot": eta_dot,
-            "true_state_deb": np.concatenate([r_deb, v_deb])
+            "true_state_deb": np.concatenate([r_deb, v_deb]),
+            "relative_state_deb": np.concatenate([rel_pos_rtn, rel_vel_rtn])
         }

@@ -58,8 +58,16 @@ class TruthGenerator:
         obs_orbit_at_collision, deb_orbit_at_collision = self._generate_encounter_orbits()
         
         # 5. "Rewind" the orbits analytically by 10 minutes to set the start state
-        obs_start_orbit = obs_orbit_at_collision.shiftedBy(-5400.0) # MODIFIABLE
-        deb_start_orbit = deb_orbit_at_collision.shiftedBy(-5400.0) # MODIFIABLE
+        # Create backward propagators that include all your high-fidelity physics
+        backward_propagator_obs = self._build_propagator(obs_orbit_at_collision)
+        backward_propagator_deb = self._build_propagator(deb_orbit_at_collision)
+
+        # Numerically integrate backward to capture drag and J40 effects in reverse
+        obs_start_state = backward_propagator_obs.propagate(self.start_epoch)
+        deb_start_state = backward_propagator_deb.propagate(self.start_epoch)
+
+        obs_start_orbit = obs_start_state.getOrbit()
+        deb_start_orbit = deb_start_state.getOrbit()
         
         self.obs_propagator = self._build_propagator(obs_start_orbit)
         self.deb_propagator = self._build_propagator(deb_start_orbit)
@@ -154,7 +162,7 @@ class TruthGenerator:
         return propagator
 
     def propagate_step(self, time_delta):
-        """Propagates both orbits to the target epoch."""
+        """Propagates both orbits to the target epoch.""" 
         if hasattr(time_delta, 'value'):
             delta_seconds = float(time_delta.value)
         else:

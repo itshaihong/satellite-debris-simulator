@@ -44,7 +44,8 @@ def main():
                     obs_data["noisy_range"],
                     obs_data["noisy_doppler"],
                     obs_data["eta_dot"],
-                    *obs_data["true_state_deb"] 
+                    *obs_data["true_state_deb"], # in ECI
+                    *obs_data["relative_state_deb"] # in RTN
                 ]
                 dataset.append(row)
             
@@ -54,7 +55,8 @@ def main():
                     episode, time_delta,
                     noisy_ground_range,
                     truth_gen.station_lat, truth_gen.station_lon, truth_gen.station_alt,
-                    *r_deb, *v_deb # True states included to calculate RMSE later
+                    *r_deb, *v_deb, # True states included to calculate RMSE later
+                    *r_obs, *v_obs  # Observer state at this time step for potential use in OD or error analysis
                 ]
                 dataset_ground.append(row_ground)
                 
@@ -69,7 +71,8 @@ def main():
         "episode_id", "time_elapsed_s", 
         "obs_x", "obs_y", "obs_z", "obs_vx", "obs_vy", "obs_vz",
         "noisy_range_m", "noisy_doppler_ms", "eta_dot", 
-        "true_deb_x", "true_deb_y", "true_deb_z", "true_deb_vx", "true_deb_vy", "true_deb_vz"
+        "true_deb_x", "true_deb_y", "true_deb_z", "true_deb_vx", "true_deb_vy", "true_deb_vz",
+        "rel_deb_x_rtn", "rel_deb_y_rtn", "rel_deb_z_rtn", "rel_deb_vx_rtn", "rel_deb_vy_rtn", "rel_deb_vz_rtn"
     ]
                
     with open(Config.OUTPUT_FILE, mode='w', newline='') as file:
@@ -97,7 +100,8 @@ def main():
 
     ground_headers = ["episode_id", "time_elapsed_s", "noisy_ground_range_m", 
                       "station_lat_deg", "station_lon_deg", "station_alt_m",
-                      "true_deb_x", "true_deb_y", "true_deb_z", "true_deb_vx", "true_deb_vy", "true_deb_vz"]
+                      "true_deb_x", "true_deb_y", "true_deb_z", "true_deb_vx", "true_deb_vy", "true_deb_vz",
+                      "obs_x", "obs_y", "obs_z", "obs_vx", "obs_vy", "obs_vz"]
     with open(Config.OUTPUT_FILE_GROUND, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(ground_headers)
